@@ -484,7 +484,7 @@ function buildGrupoDetail(grupos, dash_imp){
       var vars=Object.keys(p.data.variants||{});
       var hasVar=vars.length>1;
       var nameHtml=hasVar
-        ?'<span class="prod-expand" id="pb-'+pid+'" onclick="toggleProd(''+pid+'')"><span class="plus">+</span>'+esc(p.name)+'</span>'
+        ?'<span class="prod-expand" id="pb-'+pid+'" onclick="toggleProd(\''+pid+'\')"><span class="plus">+</span>'+esc(p.name)+'</span>'
         :'<span style="font-weight:600">'+esc(p.name)+'</span>';
       html+='<tr><td>'+nameHtml+'</td><td class="r" style="color:var(--muted)">'+fmtQty(p.data.qty,unit)+'</td><td class="r" style="font-weight:700">'+fmtImp(p.data.imp)+'</td></tr>';
       if(hasVar){
