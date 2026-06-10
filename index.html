@@ -262,7 +262,7 @@ function loadSheet(){
 }
 
 function processData(rows){
-  var fc=rows.filter(function(r){return r['Comprobante']&&r['Comprobante'].trim().startsWith('Fc');});
+  var fc=rows.filter(function(r){var c=r['Comprobante']&&r['Comprobante'].trim();return c&&(c.startsWith('Fc')||c.startsWith('Presupuesto'));});
   sp(70,'Analizando...');
   var zc={},pby={},lp={},ps={},ci={};
   fc.forEach(function(r){
