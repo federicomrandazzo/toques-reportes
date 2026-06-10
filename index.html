@@ -509,7 +509,7 @@ function buildDetNoBought(c, zs){
   last3.forEach(function(inv,fi){
     var fid='fac-'+zs+'-'+c.replace(/[^a-z0-9]/gi,'').slice(0,8)+'-'+fi;
     html+='<div class="fac-item" id="'+fid+'">';
-    html+='<div class="fac-hdr" onclick="toggleFac(''+fid+'')">';
+    html+='<div class="fac-hdr" onclick="toggleFac(\''+fid+'\')">';
     html+='<span class="fac-date">'+esc(inv.date_str)+'</span>';
     html+='<span class="fac-num">'+esc(inv.comp)+'</span>';
     html+='<span class="fac-imp">'+fmtImp(inv.total_imp)+'</span>';
