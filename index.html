@@ -293,13 +293,9 @@ function stripSize(s){
 // Click handlers using event delegation - NO inline onclick with IDs
 document.addEventListener('click', function(e) {
   var t = e.target;
-  // Zona toggle (ventas)
+  // Zona toggle (ventas y alertas)
   var zh = t.closest('.zh');
-  if(zh){
-    var azid=zh.getAttribute('data-azid');
-    if(azid){var ae=document.getElementById(azid);if(ae)ae.classList.toggle('open');return;}
-    var z=zh.closest('.zs');if(z)z.classList.toggle('open');return;
-  }
+  if(zh){var zs=zh.closest('.zs');if(zs)zs.classList.toggle('open');return;}
   // Det button
   if(t.classList.contains('exp-btn')){
     var id=t.getAttribute('data-det');
