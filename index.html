@@ -566,8 +566,8 @@ function buildRow(c,i,zs,bought){
   var obs=obsTxt?'<span class="obs">'+esc(obsTxt)+'</span>':'';
   var est=bought?'<span class="gtag">Compr&oacute;</span>':'<span class="stag">Sin compra</span>';
   var did='det-'+(++DC);
-  var det=bought?buildDetOk(c,zs):buildDetNC(c,zs);
-  var lbl=bought?'Ver compras':'&Uacute;lt. 3 compras';
+  var det=buildDetNC(c,zs);
+  var lbl='&Uacute;lt. 3 compras';
   return '<tr class="crow"><td class="idx">'+(i+1)+'</td><td class="cname">'+esc(c)+'</td><td>'+dtd+'</td><td>'+est+'</td>'+
     '<td><button class="exp-btn" data-det="'+did+'">'+lbl+'</button></td><td>'+obs+'</td></tr>'+
     '<tr class="det-row"><td colspan="6"><div class="det-panel" id="'+did+'">'+det+'</div></td></tr>';
@@ -575,7 +575,9 @@ function buildRow(c,i,zs,bought){
 function buildSection(list,zs,bought,isInact){
   if(!list.length)return '';
   var lbl=isInact?'&#128683; Inactivos ('+list.length+')':(bought?'&#10003; Compraron ('+list.length+')':'');
-  var rows='';list.forEach(function(c,i){rows+=buildRow(c,i,zs,bought);});
+  // Para compraron: ordenar de mayor a menor por suma de últimas 3 compras
+  var sorted=bought ? list.slice().sort(function(a,b){return sumLast3(b,zs)-sumLast3(a,zs);}) : list;
+  var rows='';sorted.forEach(function(c,i){rows+=buildRow(c,i,zs,bought);});
   var tbl='<div class="tbl-wrap"><table class="ctbl"><thead><tr><th style="width:40px">#</th><th>Cliente</th><th style="width:150px">&Uacute;lt. compra</th><th style="width:110px">Estado</th><th style="width:140px">Detalle</th><th>Obs.</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   var secId=(isInact?'ic_':'cc_')+zs;
   return '<div class="sec-collapse" id="'+secId+'">'+
