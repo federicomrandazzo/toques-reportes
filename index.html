@@ -360,12 +360,31 @@ function processData(rows){
   var fc=rows.filter(function(r){var c=r['Comprobante']&&r['Comprobante'].trim();return c&&(c.startsWith('Fc')||c.startsWith('Presupuesto'));});
   sp(70,'Analizando...');
   var zc={},pby={},lp={},ps={},ci={};
+
+  // PASO 1: detectar la zona más reciente de cada cliente
+  var clientLastZone={}; // cliente -> {fn, zona}
   fc.forEach(function(r){
     var z=extractZone(r['Vendedor']);if(!z)return;
-    var zs=String(z),cl=(r['Cliente']||'').trim();if(!cl)return;
+    var cl=(r['Cliente']||'').trim();if(!cl)return;
     var an=parseInt(r['\u00e3\u00b1o']||r['a\u00f1o']||r['año']||r['ano']||0);
     var me=parseInt(r['mes']||0),di=parseInt(r['dia']||0);
     if(!an||!me)return;
+    var fn=an*10000+me*100+(di||1);
+    if(!clientLastZone[cl]||fn>clientLastZone[cl].fn){
+      clientLastZone[cl]={fn:fn,zona:z};
+    }
+  });
+
+  // PASO 2: procesar con zona canónica
+  fc.forEach(function(r){
+    var z=extractZone(r['Vendedor']);if(!z)return;
+    var cl=(r['Cliente']||'').trim();if(!cl)return;
+    var an=parseInt(r['\u00e3\u00b1o']||r['a\u00f1o']||r['año']||r['ano']||0);
+    var me=parseInt(r['mes']||0),di=parseInt(r['dia']||0);
+    if(!an||!me)return;
+    // Usar la zona de la última compra del cliente
+    var canonZona=clientLastZone[cl]?clientLastZone[cl].zona:z;
+    var zs=String(canonZona);
     var per=an+'-'+(me<10?'0':'')+me;
     ps[per]=1;
     if(!zc[zs])zc[zs]=new Set();zc[zs].add(cl);
@@ -657,21 +676,33 @@ function loadAlertas(){
 }
 
 function processAlertas(rows){
-  var byKey={}; // zona|cliente -> {periodo: total}
   var periodsSet={};
+
+  // PASO 1: zona más reciente por cliente
+  var clientLastZoneA={}; // cliente -> {sortKey, zona}
   rows.forEach(function(r){
-    var z=extractZoneAlertas(r['Vendedor']);
-    if(z===null)return;
-    var cliente=(r['Cliente']||'').trim();
-    if(!cliente)return;
-    var periodo=(r['periodo']||'').trim();
-    if(!periodo)return;
+    var z=extractZoneAlertas(r['Vendedor']);if(z===null)return;
+    var cliente=(r['Cliente']||'').trim();if(!cliente)return;
+    var periodo=(r['periodo']||'').trim();if(!periodo)return;
+    var sk=periodSortKey(periodo);
+    if(!clientLastZoneA[cliente]||sk>clientLastZoneA[cliente].sk){
+      clientLastZoneA[cliente]={sk:sk,zona:z};
+    }
+  });
+
+  // PASO 2: acumular con zona canónica
+  var byKey={};
+  rows.forEach(function(r){
+    var z=extractZoneAlertas(r['Vendedor']);if(z===null)return;
+    var cliente=(r['Cliente']||'').trim();if(!cliente)return;
+    var periodo=(r['periodo']||'').trim();if(!periodo)return;
     var totalRaw=String(r['Total']||'0').replace(/\$/g,'').replace(/\./g,'').replace(',','.');
     var total=parseFloat(totalRaw)||0;
-    var totalAdj = total>0? total : 0;
+    var totalAdj=total>0?total:0;
     periodsSet[periodo]=1;
-    var key=z+'|'+cliente;
-    if(!byKey[key])byKey[key]={zona:z,cliente:cliente,vals:{}};
+    var canonZona=clientLastZoneA[cliente]?clientLastZoneA[cliente].zona:z;
+    var key=canonZona+'|'+cliente;
+    if(!byKey[key])byKey[key]={zona:canonZona,cliente:cliente,vals:{}};
     byKey[key].vals[periodo]=(byKey[key].vals[periodo]||0)+totalAdj;
   });
 
