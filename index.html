@@ -773,36 +773,65 @@ function renderAlertas(){
     : [alertasZona];
 
   var h='';
-  var totOverdue=0,totLow=0,totSpor=0,totNormal=0;
+  var totOverdue=0,totLow=0,totSpor=0;
+
+  var STATUS_LABEL={
+    overdue:'Hace mucho que no compra',
+    low_amount:'Compr\u00f3 menos del 70% de su promedio',
+    esporadico:'Menos de 3 compras'
+  };
+  var STATUS_ORDER=['overdue','low_amount','esporadico'];
+
+  // Count totals across all zones
+  ALERTAS_DATA.results.forEach(function(r){
+    if(r.status==='overdue')totOverdue++;
+    else if(r.status==='low_amount')totLow++;
+    else if(r.status==='esporadico')totSpor++;
+  });
 
   zones.forEach(function(z){
     var zResults=ALERTAS_DATA.results.filter(function(r){return r.zona===z;});
-    var filtered=alertasFilter==='todos'? zResults.filter(function(r){return r.status!=='normal';}) : zResults.filter(function(r){return r.status===alertasFilter;});
+    var toShow=alertasFilter==='todos'
+      ? zResults.filter(function(r){return r.status!=='normal';})
+      : zResults.filter(function(r){return r.status===alertasFilter;});
 
-    zResults.forEach(function(r){
-      if(r.status==='overdue')totOverdue++;
-      else if(r.status==='low_amount')totLow++;
-      else if(r.status==='esporadico')totSpor++;
-      else totNormal++;
+    if(!toShow.length)return;
+
+    // Build sub-groups per status, sorted by avg_amount desc
+    var bodyHtml='';
+    STATUS_ORDER.forEach(function(st){
+      if(alertasFilter!=='todos' && alertasFilter!==st) return;
+      var grp=toShow.filter(function(r){return r.status===st;});
+      if(!grp.length)return;
+      // Sort: esporadico by n_purchases desc, others by avg_amount desc
+      grp.sort(function(a,b){
+        var va=st==='esporadico'?a.n_purchases:(a.avg_amount||0);
+        var vb=st==='esporadico'?b.n_purchases:(b.avg_amount||0);
+        return vb-va;
+      });
+      var sgId='sg-'+z+'-'+st;
+      var rows=''; grp.forEach(function(r,i){rows+=buildAlertaRow(r,i);});
+      bodyHtml+='<div class="zs" id="'+sgId+'" style="margin:0;border-radius:0;border-left:none;border-right:none;border-top:none;">'+
+        '<div class="zh" data-azid="'+sgId+'" style="background:var(--surface2);padding:10px 18px;">'+
+          '<div class="znum" style="font-size:20px;min-width:28px">'+grp.length+'</div>'+
+          '<div class="zinfo"><div class="zname" style="font-size:13px;letter-spacing:1px">'+STATUS_LABEL[st]+'</div></div>'+
+          '<span class="tarr">&#9660;</span>'+
+        '</div>'+
+        '<div class="zbody">'+
+          '<table class="ctbl"><thead><tr><th style="width:40px">#</th><th>Cliente</th><th style="width:130px">Estado</th><th>Detalle</th></tr></thead>'+
+          '<tbody>'+rows+'</tbody></table>'+
+        '</div>'+
+      '</div>';
     });
 
-    if(!filtered.length)return;
-
-    filtered.sort(function(a,b){
-      var order={overdue:0,low_amount:1,esporadico:2,normal:3};
-      return order[a.status]-order[b.status];
-    });
-
-    var rows=''; filtered.forEach(function(r,i){rows+=buildAlertaRow(r,i);});
-
-    h+='<div class="zs" id="az-'+z+'"><div class="zh" data-azid="az-'+z+'">'+
-      '<div class="znum">'+z+'</div>'+
-      '<div class="zinfo"><div class="zname">'+esc(getVend(z))+'</div><div class="zsub">Zona '+z+' &middot; '+filtered.length+' alerta(s)</div></div>'+
-      '<span class="tarr">&#9660;</span>'+
+    h+='<div class="zs" id="az-'+z+'">'+
+      '<div class="zh" data-azid="az-'+z+'">'+
+        '<div class="znum">'+z+'</div>'+
+        '<div class="zinfo"><div class="zname">'+esc(getVend(z))+'</div><div class="zsub">Zona '+z+' &middot; '+toShow.length+' alerta(s)</div></div>'+
+        '<span class="tarr">&#9660;</span>'+
       '</div>'+
-      '<div class="zbody">'+
-      '<table class="ctbl"><thead><tr><th style="width:40px">#</th><th>Cliente</th><th style="width:130px">Estado</th><th>Detalle</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-      '</div></div>';
+      '<div class="zbody">'+bodyHtml+'</div>'+
+    '</div>';
   });
 
   if(!h)h='<div class="allok">&#10003; No hay alertas para mostrar con este filtro</div>';
