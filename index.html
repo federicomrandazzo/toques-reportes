@@ -158,6 +158,28 @@ table.ptbl td.bold{font-weight:700;}
 .al-badge.al-normal{background:var(--green-lt);color:var(--green);border:1px solid var(--green-bd);}
 .al-detail{font-size:12px;color:var(--muted);line-height:1.6;}
 .al-stat{display:flex;flex-direction:column;align-items:center;padding:8px 18px;border-radius:8px;background:var(--surface);border:2px solid var(--border-dk);min-width:90px;}
+.sec-collapse{border-top:2px solid var(--border-dk);border-bottom:1px solid var(--border);background:var(--surface2);}
+.sec-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;user-select:none;}
+.sec-hdr:hover{background:#EFEFEF;}
+.sec-hdr .sd-lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text);flex:1;}
+.sec-hdr .tarr{font-size:12px;}
+.sec-collapse.open .sec-hdr .tarr{transform:rotate(180deg);}
+.sec-body{display:none;background:var(--surface);}
+.sec-collapse.open .sec-body{display:block;}
+.subgrp{border-bottom:1px solid var(--border);}
+.subgrp:last-child{border-bottom:none;}
+.subgrp-hdr{display:flex;align-items:center;gap:10px;padding:9px 22px;cursor:pointer;user-select:none;background:var(--surface3);}
+.subgrp-hdr:hover{background:#F0F0F0;}
+.subgrp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.subgrp-dot.sg-rec{background:var(--green);}
+.subgrp-dot.sg-mid{background:#D4A900;}
+.subgrp-dot.sg-old{background:var(--orange);}
+.subgrp-lbl{font-size:13px;font-weight:700;color:var(--text);flex:1;}
+.subgrp-cnt{font-family:"Segoe UI Black","Arial Black",sans-serif;font-size:15px;font-weight:900;color:var(--muted);}
+.subgrp .tarr{font-size:11px;}
+.subgrp.open .tarr{transform:rotate(180deg);}
+.subgrp-body{display:none;}
+.subgrp.open .subgrp-body{display:block;}
 </style>
 </head>
 <body>
@@ -293,6 +315,12 @@ document.addEventListener('click', function(e) {
     document.querySelectorAll('.pv-'+pid).forEach(function(r){r.classList.toggle('show');});
     return;
   }
+  // Sin-compra section collapse
+  var sh=t.closest('.sec-hdr');
+  if(sh){var sc=sh.closest('.sec-collapse');if(sc)sc.classList.toggle('open');return;}
+  // Subgroup toggle
+  var sgh=t.closest('.subgrp-hdr');
+  if(sgh){var sg=sgh.closest('.subgrp');if(sg)sg.classList.toggle('open');return;}
 });
 
 function reloadData(){document.getElementById('loading').style.display='flex';DATA=null;loadSheet();}
@@ -330,7 +358,7 @@ function processData(rows){
     var grupo=GRUPO_MAP[color]||null;
     var desc=(r['Descripci\u00f3n']||r['Descripcion']||'').trim();
     var pb=stripSize(desc);
-    var qty=-(parseFloat(r['CANTIDAD DE PRODUCTO TOTAL']||0));
+    var qty=(parseFloat(r['CANTIDAD DE PRODUCTO TOTAL']||0));
     var imp=-(parseFloat(r['SubTotal art\u00edculo']||r['SubTotal artículo']||0));
     var comp=(r['Comprobante']||'').trim();
     var ds2=(di?(((di<10?'0':'')+di+'/')):'')+(me<10?'0':'')+me+'/'+an;
@@ -449,6 +477,65 @@ function buildDetOk(c,zs){
   return '<div style="padding:8px 0">'+buildGrupo(det.g,det.di)+'</div>';
 }
 
+function sumLast3(c,zs){
+  var l3=(DATA.client_last3[zs]||{})[c]||[];
+  var sum=0; l3.forEach(function(inv){sum+=inv.ti;});
+  return sum;
+}
+
+function buildSinCompraSection(list,zs){
+  if(!list.length)return '';
+  // Split by date semaphore
+  var g_rec=[],g_mid=[],g_old=[];
+  list.forEach(function(c){
+    var ld=((DATA.last_purchase||{})[zs]||{})[c]||'';
+    var dc=dateClass(ld);
+    if(dc==='d-rec')g_rec.push(c);
+    else if(dc==='d-mid')g_mid.push(c);
+    else g_old.push(c);
+  });
+  // Sort each group by sum of last 3 purchases, descending
+  function sortBySum(arr){
+    return arr.map(function(c){return{c:c,sum:sumLast3(c,zs)};})
+      .sort(function(a,b){return b.sum-a.sum;})
+      .map(function(x){return x.c;});
+  }
+  g_rec=sortBySum(g_rec); g_mid=sortBySum(g_mid); g_old=sortBySum(g_old);
+
+  function buildSubGroup(arr,label,cls,gid){
+    if(!arr.length)return '';
+    var rows='';arr.forEach(function(c,i){rows+=buildRow(c,i,zs,false);});
+    return '<div class="subgrp" id="'+gid+'">'+
+      '<div class="subgrp-hdr" data-subgrp="'+gid+'">'+
+        '<span class="subgrp-dot '+cls+'"></span>'+
+        '<span class="subgrp-lbl">'+label+'</span>'+
+        '<span class="subgrp-cnt">'+arr.length+'</span>'+
+        '<span class="tarr">&#9660;</span>'+
+      '</div>'+
+      '<div class="subgrp-body">'+
+        '<div class="tbl-wrap"><table class="ctbl"><thead><tr><th style="width:40px">#</th><th>Cliente</th><th style="width:150px">&Uacute;lt. compra</th><th style="width:110px">Estado</th><th style="width:140px">Detalle</th><th>Obs.</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  var sgid=zs+'_'+Math.random().toString(36).slice(2,6);
+  var inner=buildSubGroup(g_rec,'Hasta 3 meses','sg-rec',sgid+'a')+
+    buildSubGroup(g_mid,'Entre 3 y 6 meses','sg-mid',sgid+'b')+
+    buildSubGroup(g_old,'M&aacute;s de 6 meses','sg-old',sgid+'c');
+
+  var secId='sc_'+zs;
+  return '<div class="sec-collapse" id="'+secId+'">'+
+    '<div class="sec-hdr" data-seccollapse="'+secId+'">'+
+      '<span class="sd-lbl">Sin compra ('+list.length+')</span>'+
+      '<span class="tarr">&#9660;</span>'+
+    '</div>'+
+    '<div class="sec-body">'+inner+'</div>'+
+  '</div>';
+}
+
+function toggleSecCollapse(id){var e=document.getElementById(id);if(e)e.classList.toggle('open');}
+function toggleSubgrp(id){var e=document.getElementById(id);if(e)e.classList.toggle('open');}
+
 var DC=0;
 function buildRow(c,i,zs,bought){
   var ld=((DATA.last_purchase||{})[zs]||{})[c]||'';
@@ -487,7 +574,7 @@ function render(){
     var comp=all.filter(function(c){return bs.has(c);});
     tC+=all.length;tOk+=comp.length;tNC+=noC.length;
     var oc=curView==='single'?' open':'';
-    var body=buildSection(act,zs,false,false)+buildSection(inac,zs,false,true)+buildSection(comp,zs,true,false);
+    var body=buildSinCompraSection(act,zs)+buildSection(inac,zs,false,true)+buildSection(comp,zs,true,false);
     if(!body)body='<div class="allok">&#10003; Todos compraron</div>';
     h+='<div class="zs'+oc+'" id="z-'+z+'"><div class="zh"><div class="znum">'+z+'</div>'+
       '<div class="zinfo"><div class="zname">'+esc(getVend(z))+'</div><div class="zsub">Zona '+z+' &middot; '+all.length+' clientes</div></div>'+
@@ -626,6 +713,7 @@ function setAlertasView(v){
   renderAlertas();
 }
 
+function toggleAlertaZona(z){var e=document.getElementById('az-'+z);if(e)e.classList.toggle('open');}
 function setAlertasFilter(f){
   alertasFilter=f;
   ['todos','overdue','low_amount','esporadico'].forEach(function(k){
@@ -697,11 +785,12 @@ function renderAlertas(){
 
     var rows=''; filtered.forEach(function(r,i){rows+=buildAlertaRow(r,i);});
 
-    h+='<div class="zs open"><div class="zh" style="cursor:default">'+
+    h+='<div class="zs" id="az-'+z+'"><div class="zh" onclick="toggleAlertaZona('+z+')">'+
       '<div class="znum">'+z+'</div>'+
       '<div class="zinfo"><div class="zname">'+esc(getVend(z))+'</div><div class="zsub">Zona '+z+' &middot; '+filtered.length+' alerta(s)</div></div>'+
+      '<span class="tarr">&#9660;</span>'+
       '</div>'+
-      '<div class="zbody" style="display:block">'+
+      '<div class="zbody">'+
       '<table class="ctbl"><thead><tr><th style="width:40px">#</th><th>Cliente</th><th style="width:130px">Estado</th><th>Detalle</th></tr></thead><tbody>'+rows+'</tbody></table>'+
       '</div></div>';
   });
