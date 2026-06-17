@@ -293,9 +293,13 @@ function stripSize(s){
 // Click handlers using event delegation - NO inline onclick with IDs
 document.addEventListener('click', function(e) {
   var t = e.target;
-  // Zona toggle
+  // Zona toggle (ventas)
   var zh = t.closest('.zh');
-  if(zh){var z=zh.closest('.zs');if(z)z.classList.toggle('open');return;}
+  if(zh){
+    var azid=zh.getAttribute('data-azid');
+    if(azid){var ae=document.getElementById(azid);if(ae)ae.classList.toggle('open');return;}
+    var z=zh.closest('.zs');if(z)z.classList.toggle('open');return;
+  }
   // Det button
   if(t.classList.contains('exp-btn')){
     var id=t.getAttribute('data-det');
@@ -792,7 +796,7 @@ function renderAlertas(){
 
     var rows=''; filtered.forEach(function(r,i){rows+=buildAlertaRow(r,i);});
 
-    h+='<div class="zs" id="az-'+z+'"><div class="zh" onclick="toggleAlertaZona('+z+')">'+
+    h+='<div class="zs" id="az-'+z+'"><div class="zh" data-azid="az-'+z+'">'+
       '<div class="znum">'+z+'</div>'+
       '<div class="zinfo"><div class="zname">'+esc(getVend(z))+'</div><div class="zsub">Zona '+z+' &middot; '+filtered.length+' alerta(s)</div></div>'+
       '<span class="tarr">&#9660;</span>'+
