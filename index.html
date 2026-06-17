@@ -138,6 +138,26 @@ table.ptbl td.bold{font-weight:700;}
 .dash-imp{font-weight:700;margin-left:auto;}
 .no-det{padding:12px 32px;font-size:13px;color:var(--muted);}
 @media(max-width:768px){.hdr,.cbar,.main{padding-left:16px;padding-right:16px;}select{min-width:180px;}.spill{margin-left:0;width:100%;justify-content:flex-end;}}
+
+.maintabs{display:flex;border:2px solid var(--border-dk);border-radius:7px;overflow:hidden;margin-right:8px;}
+.maintab{font-family:inherit;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:9px 20px;border:none;background:var(--surface);color:var(--muted);cursor:pointer;}
+.maintab.on{background:var(--text);color:#fff;}
+.maintab:hover:not(.on){background:var(--surface2);}
+#alertasPage{display:none;}
+.al-filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.al-filter-btn{font-family:inherit;font-size:13px;font-weight:700;padding:8px 16px;border:2px solid var(--border-dk);border-radius:7px;background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;}
+.al-filter-btn.on{border-color:var(--text);background:var(--text);color:#fff;}
+.al-filter-btn .cnt{font-family:"Segoe UI Black","Arial Black",sans-serif;font-weight:900;}
+#alertasLoading{display:none;padding:60px;text-align:center;color:var(--muted);}
+#alertasLoading .spin{width:42px;height:42px;border:4px solid #eee;border-top-color:var(--yellow-dk);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;}
+.al-row td{padding:10px 16px;vertical-align:top;}
+.al-badge{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 10px;border-radius:4px;white-space:nowrap;}
+.al-badge.al-overdue{background:var(--orange-lt);color:var(--orange);border:1px solid var(--orange-bd);}
+.al-badge.al-low{background:#FFFBE6;color:#8A6A00;border:1px solid #EDD87A;}
+.al-badge.al-spor{background:var(--surface2);color:var(--muted);border:1px solid var(--border-dk);}
+.al-badge.al-normal{background:var(--green-lt);color:var(--green);border:1px solid var(--green-bd);}
+.al-detail{font-size:12px;color:var(--muted);line-height:1.6;}
+.al-stat{display:flex;flex-direction:column;align-items:center;padding:8px 18px;border-radius:8px;background:var(--surface);border:2px solid var(--border-dk);min-width:90px;}
 </style>
 </head>
 <body>
@@ -154,6 +174,10 @@ table.ptbl td.bold{font-weight:700;}
     <div class="htitle">
       <h1>An&#225;lisis de clientes</h1>
       <p>Actividad comercial por zona</p>
+    </div>
+    <div class="maintabs">
+      <button class="maintab on" id="tabVentas" onclick="setMainTab('ventas')">Ventas</button>
+      <button class="maintab" id="tabAlertas" onclick="setMainTab('alertas')">Alertas de ca&iacute;da</button>
     </div>
     <button class="refresh-btn" onclick="reloadData()">&#8635; Actualizar</button>
     <span class="last-update" id="lastUpdate"></span>
@@ -178,7 +202,28 @@ table.ptbl td.bold{font-weight:700;}
   </div>
   <div class="sbanner" id="soloBanner">Vista exclusiva:&nbsp;<strong id="soloLbl">-</strong></div>
 </div>
+<div id="ventasPage">
 <div class="main" id="main"></div>
+</div>
+<div id="alertasPage">
+<div class="main">
+  <div class="al-filters">
+    <button class="al-filter-btn on" id="af-todos" onclick="setAlertasFilter('todos')">Todas las alertas</button>
+    <button class="al-filter-btn" id="af-overdue" onclick="setAlertasFilter('overdue')">Vencidos <span class="cnt" id="alStatOverdue">-</span></button>
+    <button class="al-filter-btn" id="af-low_amount" onclick="setAlertasFilter('low_amount')">Monto bajo <span class="cnt" id="alStatLow">-</span></button>
+    <button class="al-filter-btn" id="af-esporadico" onclick="setAlertasFilter('esporadico')">Espor&aacute;dicos <span class="cnt" id="alStatSpor">-</span></button>
+  </div>
+  <div class="cgrp" id="alertasZonaCG" style="display:none;margin-bottom:16px">
+    <span class="clbl">Zona</span><select id="alertasZonaSel"></select>
+  </div>
+  <div class="vtog" style="margin-bottom:16px">
+    <button class="vbtn on" id="alertasBtnAll" onclick="setAlertasView('all')">Todas las zonas</button>
+    <button class="vbtn" id="alertasBtnSingle" onclick="setAlertasView('single')">Por zona</button>
+  </div>
+  <div id="alertasLoading"><div class="spin"></div><p id="alertasLoadMsg">Cargando datos de alertas...</p></div>
+  <div id="alertasMain"></div>
+</div>
+</div>
 <script>
 var STATIC = JSON.parse(document.getElementById('staticData').textContent);
 var CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTBXwcnP6TwSkHfToBOMIl9o0c-fIo4erZ7wMBdTpDxRsqmf5iSl3-3FfM5gg8z6cvfJpCiWXKLaiBE/pub?gid=914595290&single=true&output=csv";
@@ -458,6 +503,226 @@ function render(){
   document.getElementById('stNC').textContent=tNC;
 }
 loadSheet();
+
+
+// ============ ALERTAS DE CAIDA (segunda fuente: planilla mensual) ============
+var CSV_URL_ALERTAS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTBXwcnP6TwSkHfToBOMIl9o0c-fIo4erZ7wMBdTpDxRsqmf5iSl3-3FfM5gg8z6cvfJpCiWXKLaiBE/pub?gid=2090125205&single=true&output=csv";
+var ALERTAS_DATA = null;
+var alertasView = 'all';
+var alertasZona = 0;
+var alertasFilter = 'todos'; // todos | overdue | low_amount | esporadico
+
+var MANUAL_ZONE_ALERTAS = {'GIGENA,  CARLOS ARIEL': 8};
+
+function extractZoneAlertas(v){
+  if(!v)return null;v=String(v).trim();
+  if(MANUAL_ZONE_ALERTAS[v]!==undefined) return MANUAL_ZONE_ALERTAS[v];
+  var m;
+  m=v.match(/NUMERO\s+(\d+)/i);if(m)return parseInt(m[1]);
+  m=v.match(/\((\d+)\)/);if(m)return parseInt(m[1]);
+  m=v.match(/X-BAJAS-(\d+)/i);if(m)return parseInt(m[1]);
+  return null;
+}
+
+function periodSortKey(p){
+  var parts=String(p).split('-');
+  return parseInt(parts[0])*100+parseInt(parts[1]);
+}
+
+function loadAlertas(){
+  document.getElementById('alertasLoading').style.display='flex';
+  Papa.parse(CSV_URL_ALERTAS,{
+    download:true,header:true,skipEmptyLines:true,
+    complete:function(r){ processAlertas(r.data); },
+    error:function(e){ document.getElementById('alertasLoadMsg').textContent='Error: '+String(e); }
+  });
+}
+
+function processAlertas(rows){
+  var byKey={}; // zona|cliente -> {periodo: total}
+  var periodsSet={};
+  rows.forEach(function(r){
+    var z=extractZoneAlertas(r['Vendedor']);
+    if(z===null)return;
+    var cliente=(r['Cliente']||'').trim();
+    if(!cliente)return;
+    var periodo=(r['periodo']||'').trim();
+    if(!periodo)return;
+    var total=parseFloat(String(r['Total']||'0').replace(/[^0-9.\-]/g,''))||0;
+    var totalAdj = total>0? total : 0;
+    periodsSet[periodo]=1;
+    var key=z+'|'+cliente;
+    if(!byKey[key])byKey[key]={zona:z,cliente:cliente,vals:{}};
+    byKey[key].vals[periodo]=(byKey[key].vals[periodo]||0)+totalAdj;
+  });
+
+  var periods=Object.keys(periodsSet).sort(function(a,b){return periodSortKey(a)-periodSortKey(b);});
+
+  var results=[];
+  Object.keys(byKey).forEach(function(key){
+    var entry=byKey[key];
+    var vals=periods.map(function(p){return entry.vals[p]||0;});
+    var mwp=[]; // months with purchase (indices)
+    vals.forEach(function(v,i){if(v>0)mwp.push(i);});
+    var n=mwp.length;
+    var res={zona:entry.zona,cliente:entry.cliente,n_purchases:n};
+
+    if(n<3){
+      res.status='esporadico';
+      res.purchases=mwp.map(function(i){return{period:periods[i],amount:Math.round(vals[i])};});
+    } else {
+      var gaps=[];
+      for(var i=0;i<mwp.length-1;i++)gaps.push(mwp[i+1]-mwp[i]);
+      var gapsSorted=gaps.slice().sort(function(a,b){return a-b;});
+      var medianGap=gapsSorted[Math.floor(gapsSorted.length/2)];
+      var sum=0; mwp.forEach(function(i){sum+=vals[i];});
+      var avgAmount=sum/n;
+      var lastIdx=mwp[mwp.length-1];
+      var monthsSinceLast=(vals.length-1)-lastIdx;
+      var lastAmount=vals[lastIdx];
+      var overdueThreshold=medianGap*1.4;
+
+      if(monthsSinceLast>overdueThreshold){
+        res.status='overdue';
+      } else if(lastAmount<avgAmount*0.7){
+        res.status='low_amount';
+      } else {
+        res.status='normal';
+      }
+      res.median_gap=medianGap;
+      res.avg_amount=Math.round(avgAmount);
+      res.last_amount=Math.round(lastAmount);
+      res.months_since_last=monthsSinceLast;
+      res.last_period=periods[lastIdx];
+      res.pct_of_avg=avgAmount>0?Math.round(lastAmount/avgAmount*100):null;
+    }
+    results.push(res);
+  });
+
+  ALERTAS_DATA={results:results,periods:periods};
+  document.getElementById('alertasLoading').style.display='none';
+  initAlertasUI();
+}
+
+function initAlertasUI(){
+  var zones=Array.from(new Set(ALERTAS_DATA.results.map(function(r){return r.zona;}))).sort(function(a,b){return a-b;});
+  alertasZona=zones[0];
+  var zs=document.getElementById('alertasZonaSel');
+  zs.innerHTML='';
+  zones.forEach(function(z){
+    var o=document.createElement('option');
+    o.value=z; o.textContent=getVend(z)+' (Zona '+z+')';
+    zs.appendChild(o);
+  });
+  zs.onchange=function(){alertasZona=parseInt(zs.value);renderAlertas();};
+  renderAlertas();
+}
+
+function setAlertasView(v){
+  alertasView=v;
+  document.getElementById('alertasBtnAll').classList.toggle('on',v==='all');
+  document.getElementById('alertasBtnSingle').classList.toggle('on',v==='single');
+  document.getElementById('alertasZonaCG').style.display=v==='single'?'':'none';
+  renderAlertas();
+}
+
+function setAlertasFilter(f){
+  alertasFilter=f;
+  ['todos','overdue','low_amount','esporadico'].forEach(function(k){
+    document.getElementById('af-'+k).classList.toggle('on',k===f);
+  });
+  renderAlertas();
+}
+
+function statusLabel(s){
+  if(s==='overdue')return 'Vencido';
+  if(s==='low_amount')return 'Monto bajo';
+  if(s==='esporadico')return 'Esporádico';
+  if(s==='normal')return 'Normal';
+  return s;
+}
+function statusClass(s){
+  if(s==='overdue')return 'al-overdue';
+  if(s==='low_amount')return 'al-low';
+  if(s==='esporadico')return 'al-spor';
+  return 'al-normal';
+}
+
+function fmtMoney(v){return '$'+Math.round(v).toLocaleString('es-AR');}
+
+function buildAlertaRow(r,i){
+  var detail='';
+  if(r.status==='esporadico'){
+    var comprasStr=r.purchases.map(function(p){return p.period+': '+fmtMoney(p.amount);}).join(' &middot; ');
+    detail='<span class="al-detail">'+r.n_purchases+' compra(s) en total &mdash; '+comprasStr+'</span>';
+  } else {
+    detail='<span class="al-detail">Ciclo t&iacute;pico: cada '+r.median_gap+' mes(es) &middot; Promedio: '+fmtMoney(r.avg_amount)+
+      ' &middot; &Uacute;ltima compra: '+r.last_period+' ('+fmtMoney(r.last_amount)+(r.pct_of_avg!==null?', '+r.pct_of_avg+'% del promedio':'')+')'+
+      ' &middot; Hace '+r.months_since_last+' mes(es)</span>';
+  }
+  return '<tr class="al-row '+statusClass(r.status)+'">'+
+    '<td class="idx">'+(i+1)+'</td>'+
+    '<td class="cname">'+esc(r.cliente)+'</td>'+
+    '<td><span class="al-badge '+statusClass(r.status)+'">'+statusLabel(r.status)+'</span></td>'+
+    '<td>'+detail+'</td>'+
+  '</tr>';
+}
+
+function renderAlertas(){
+  if(!ALERTAS_DATA)return;
+  var zones=alertasView==='all'
+    ? Array.from(new Set(ALERTAS_DATA.results.map(function(r){return r.zona;}))).sort(function(a,b){return a-b;})
+    : [alertasZona];
+
+  var h='';
+  var totOverdue=0,totLow=0,totSpor=0,totNormal=0;
+
+  zones.forEach(function(z){
+    var zResults=ALERTAS_DATA.results.filter(function(r){return r.zona===z;});
+    var filtered=alertasFilter==='todos'? zResults.filter(function(r){return r.status!=='normal';}) : zResults.filter(function(r){return r.status===alertasFilter;});
+
+    zResults.forEach(function(r){
+      if(r.status==='overdue')totOverdue++;
+      else if(r.status==='low_amount')totLow++;
+      else if(r.status==='esporadico')totSpor++;
+      else totNormal++;
+    });
+
+    if(!filtered.length)return;
+
+    filtered.sort(function(a,b){
+      var order={overdue:0,low_amount:1,esporadico:2,normal:3};
+      return order[a.status]-order[b.status];
+    });
+
+    var rows=''; filtered.forEach(function(r,i){rows+=buildAlertaRow(r,i);});
+
+    h+='<div class="zs open"><div class="zh" style="cursor:default">'+
+      '<div class="znum">'+z+'</div>'+
+      '<div class="zinfo"><div class="zname">'+esc(getVend(z))+'</div><div class="zsub">Zona '+z+' &middot; '+filtered.length+' alerta(s)</div></div>'+
+      '</div>'+
+      '<div class="zbody" style="display:block">'+
+      '<table class="ctbl"><thead><tr><th style="width:40px">#</th><th>Cliente</th><th style="width:130px">Estado</th><th>Detalle</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+      '</div></div>';
+  });
+
+  if(!h)h='<div class="allok">&#10003; No hay alertas para mostrar con este filtro</div>';
+
+  document.getElementById('alertasMain').innerHTML=h;
+  document.getElementById('alStatOverdue').textContent=totOverdue;
+  document.getElementById('alStatLow').textContent=totLow;
+  document.getElementById('alStatSpor').textContent=totSpor;
+}
+
+function setMainTab(tab){
+  document.getElementById('tabVentas').classList.toggle('on',tab==='ventas');
+  document.getElementById('tabAlertas').classList.toggle('on',tab==='alertas');
+  document.getElementById('ventasPage').style.display=tab==='ventas'?'block':'none';
+  document.getElementById('alertasPage').style.display=tab==='alertas'?'block':'none';
+  if(tab==='alertas' && !ALERTAS_DATA){
+    loadAlertas();
+  }
+}
 
 </script>
 </body>
