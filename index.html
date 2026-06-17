@@ -295,7 +295,13 @@ document.addEventListener('click', function(e) {
   var t = e.target;
   // Zona toggle (ventas y alertas)
   var zh = t.closest('.zh');
-  if(zh){var zs=zh.closest('.zs');if(zs)zs.classList.toggle('open');return;}
+  if(zh){
+    var sgid=zh.getAttribute('data-sgid');
+    if(sgid){var sge=document.getElementById(sgid);if(sge)sge.classList.toggle('open');return;}
+    var azid=zh.getAttribute('data-azid');
+    if(azid){var aze=document.getElementById(azid);if(aze)aze.classList.toggle('open');return;}
+    var zs=zh.closest('.zs');if(zs)zs.classList.toggle('open');return;
+  }
   // Det button
   if(t.classList.contains('exp-btn')){
     var id=t.getAttribute('data-det');
@@ -812,7 +818,7 @@ function renderAlertas(){
       var sgId='sg-'+z+'-'+st;
       var rows=''; grp.forEach(function(r,i){rows+=buildAlertaRow(r,i);});
       bodyHtml+='<div class="zs" id="'+sgId+'" style="margin:0;border-radius:0;border-left:none;border-right:none;border-top:none;">'+
-        '<div class="zh" data-azid="'+sgId+'" style="background:var(--surface2);padding:10px 18px;">'+
+        '<div class="zh" data-sgid="'+sgId+'" style="background:var(--surface2);padding:10px 18px;">'+
           '<div class="znum" style="font-size:20px;min-width:28px">'+grp.length+'</div>'+
           '<div class="zinfo"><div class="zname" style="font-size:13px;letter-spacing:1px">'+STATUS_LABEL[st]+'</div></div>'+
           '<span class="tarr">&#9660;</span>'+
