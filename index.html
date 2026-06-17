@@ -359,7 +359,7 @@ function processData(rows){
     var desc=(r['Descripci\u00f3n']||r['Descripcion']||'').trim();
     var pb=stripSize(desc);
     var qty=(parseFloat(r['CANTIDAD DE PRODUCTO TOTAL']||0));
-    var imp=-(parseFloat(r['SubTotal art\u00edculo']||r['SubTotal artículo']||0));
+    var imp=(parseFloat(r['SubTotal art\u00edculo']||r['SubTotal artículo']||0));
     var comp=(r['Comprobante']||'').trim();
     var ds2=(di?(((di<10?'0':'')+di+'/')):'')+(me<10?'0':'')+me+'/'+an;
     if(!ci[zs])ci[zs]={};if(!ci[zs][cl])ci[zs][cl]={};
