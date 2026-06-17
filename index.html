@@ -669,8 +669,10 @@ function processAlertas(rows){
       for(var i=0;i<mwp.length-1;i++)gaps.push(mwp[i+1]-mwp[i]);
       var gapsSorted=gaps.slice().sort(function(a,b){return a-b;});
       var medianGap=gapsSorted[Math.floor(gapsSorted.length/2)];
-      var sum=0; mwp.forEach(function(i){sum+=vals[i];});
-      var avgAmount=sum/n;
+      // Promedio de monto: solo meses desde 2025-01 en adelante
+      var mwp2025=mwp.filter(function(i){return periodSortKey(periods[i])>=202501;});
+      var sum2025=0; mwp2025.forEach(function(i){sum2025+=vals[i];});
+      var avgAmount=mwp2025.length>0 ? sum2025/mwp2025.length : 0;
       var lastIdx=mwp[mwp.length-1];
       var monthsSinceLast=(vals.length-1)-lastIdx;
       var lastAmount=vals[lastIdx];
