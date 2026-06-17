@@ -553,9 +553,16 @@ function buildRow(c,i,zs,bought){
 function buildSection(list,zs,bought,isInact){
   if(!list.length)return '';
   var lbl=isInact?'&#128683; Inactivos ('+list.length+')':(bought?'&#10003; Compraron ('+list.length+')':'');
-  var div=lbl?'<div class="sec-div"><span class="sd-lbl">'+lbl+'</span></div>':'';
   var rows='';list.forEach(function(c,i){rows+=buildRow(c,i,zs,bought);});
-  return div+'<div class="tbl-wrap"><table class="ctbl"><thead><tr><th style="width:40px">#</th><th>Cliente</th><th style="width:150px">&Uacute;lt. compra</th><th style="width:110px">Estado</th><th style="width:140px">Detalle</th><th>Obs.</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  var tbl='<div class="tbl-wrap"><table class="ctbl"><thead><tr><th style="width:40px">#</th><th>Cliente</th><th style="width:150px">&Uacute;lt. compra</th><th style="width:110px">Estado</th><th style="width:140px">Detalle</th><th>Obs.</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  var secId=(isInact?'ic_':'cc_')+zs;
+  return '<div class="sec-collapse" id="'+secId+'">'+
+    '<div class="sec-hdr" data-seccollapse="'+secId+'">'+
+      '<span class="sd-lbl">'+lbl+'</span>'+
+      '<span class="tarr">&#9660;</span>'+
+    '</div>'+
+    '<div class="sec-body">'+tbl+'</div>'+
+  '</div>';
 }
 
 function render(){
