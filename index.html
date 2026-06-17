@@ -642,7 +642,8 @@ function processAlertas(rows){
     if(!cliente)return;
     var periodo=(r['periodo']||'').trim();
     if(!periodo)return;
-    var total=parseFloat(String(r['Total']||'0').replace(/[^0-9.\-]/g,''))||0;
+    var totalRaw=String(r['Total']||'0').replace(/\$/g,'').replace(/\./g,'').replace(',','.');
+    var total=parseFloat(totalRaw)||0;
     var totalAdj = total>0? total : 0;
     periodsSet[periodo]=1;
     var key=z+'|'+cliente;
