@@ -175,6 +175,16 @@ table.ptbl td.bold{font-weight:700;}
 #repLoading .spin{width:42px;height:42px;border:4px solid #eee;border-top-color:var(--yellow-dk);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;}
 .rep-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:20px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);}
 .rep-head{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:2px solid var(--yellow);}
+.rep-toggle{cursor:pointer;user-select:none;}
+.rep-toggle:hover{background:#FFFBE6;}
+.rep-head-txt{flex:1;min-width:0;}
+.rep-arr{font-size:13px;color:var(--muted);transition:transform .25s;flex-shrink:0;}
+.rep-section.open .rep-arr{transform:rotate(180deg);}
+.rep-body{display:none;}
+.rep-section.open .rep-body{display:block;}
+.rep-head-legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+.rep-head-legend span{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap;}
+.rep-head-legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
 .rep-num{font-family:"Segoe UI Black","Arial Black",sans-serif;font-size:30px;font-weight:900;color:var(--yellow-dk);min-width:34px;text-align:center;}
 .rep-head h3{font-family:"Segoe UI Black","Arial Black",sans-serif;font-size:16px;font-weight:900;color:#111;letter-spacing:1px;text-transform:uppercase;margin:0;}
 .rep-head p{font-size:12px;color:var(--muted);margin:2px 0 0;}
@@ -207,7 +217,7 @@ table.ptbl td.bold{font-weight:700;}
 .rep-heat-wrap{overflow-x:auto;padding:8px 0;}
 .rep-heat{border-collapse:collapse;font-size:12px;}
 .rep-heat th{padding:5px 6px;font-weight:700;color:var(--muted);font-size:11px;text-align:center;white-space:nowrap;}
-.rep-heat-name{text-align:left!important;position:sticky;left:0;background:var(--surface);min-width:170px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:20px!important;font-weight:600;color:var(--text);}
+.rep-heat-name{text-align:left!important;position:sticky;left:0;background:var(--surface);min-width:240px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:20px!important;font-weight:600;color:var(--text);}
 .rep-heat td.rep-heat-name{font-size:12px;}
 .rep-heat-mh{min-width:30px;}
 .rep-heat-c{padding:2px;text-align:center;}
@@ -328,21 +338,36 @@ table.ptbl td.bold{font-weight:700;}
   </div>
   <div id="repLoading"><div class="spin"></div><p id="repLoadMsg">Cargando datos de reportes...</p></div>
   <div id="repContent">
-    <section class="rep-section">
-      <div class="rep-head"><span class="rep-num">1</span><div><h3>Ranking de clientes</h3><p>Facturaci&oacute;n &uacute;ltimos 3 meses, comparada con el trimestre anterior y el mes anterior</p></div></div>
-      <div id="rep1Body"></div>
+    <section class="rep-section" id="repSec1">
+      <div class="rep-head rep-toggle" data-sec="repSec1"><span class="rep-num">1</span><div class="rep-head-txt"><h3>Ranking de clientes</h3><p>Facturaci&oacute;n &uacute;ltimos 3 meses, comparada con el trimestre anterior y el mes anterior</p></div><span class="rep-arr">&#9660;</span></div>
+      <div class="rep-body" id="rep1Body"></div>
     </section>
-    <section class="rep-section">
-      <div class="rep-head"><span class="rep-num">2</span><div><h3>Mix de productos</h3><p>Composici&oacute;n de compra por grupo: trimestre actual vs anterior</p></div></div>
-      <div id="rep2Body"></div>
+    <section class="rep-section" id="repSec2">
+      <div class="rep-head rep-toggle" data-sec="repSec2"><span class="rep-num">2</span><div class="rep-head-txt"><h3>Mix de productos</h3><p>Composici&oacute;n de compra por grupo: trimestre actual vs anterior</p></div>
+        <div class="rep-head-legend">
+          <span><i style="background:#378ADD"></i>Pinturas</span>
+          <span><i style="background:#1D9E75"></i>Distribuci&oacute;n</span>
+          <span><i style="background:#EF9F27"></i>Fraccionam.</span>
+          <span class="rep-legend-note">claro = trim. ant.</span>
+        </div>
+        <span class="rep-arr">&#9660;</span></div>
+      <div class="rep-body" id="rep2Body"></div>
     </section>
-    <section class="rep-section">
-      <div class="rep-head"><span class="rep-num">3</span><div><h3>Estacionalidad</h3><p>Intensidad de compra mes a mes desde enero 2025</p></div></div>
-      <div id="rep3Body"></div>
+    <section class="rep-section" id="repSec3">
+      <div class="rep-head rep-toggle" data-sec="repSec3"><span class="rep-num">3</span><div class="rep-head-txt"><h3>Estacionalidad</h3><p>Intensidad de compra mes a mes desde enero 2025</p></div>
+        <div class="rep-head-legend">
+          <span>Sin compra</span><span class="rep-x sm">&#10005;</span>
+          <span class="rep-cell sm" style="background:#C0DD97"></span>
+          <span class="rep-cell sm" style="background:#97C459"></span>
+          <span class="rep-cell sm" style="background:#639922"></span>
+          <span class="rep-cell sm" style="background:#3B6D11"></span><span>+compra</span>
+        </div>
+        <span class="rep-arr">&#9660;</span></div>
+      <div class="rep-body" id="rep3Body"></div>
     </section>
-    <section class="rep-section">
-      <div class="rep-head"><span class="rep-num">4</span><div><h3>Clientes nuevos vs perdidos</h3><p>Flujo de cartera mensual: nuevos, reactivados y perdidos</p></div></div>
-      <div id="rep4Body"></div>
+    <section class="rep-section" id="repSec4">
+      <div class="rep-head rep-toggle" data-sec="repSec4"><span class="rep-num">4</span><div class="rep-head-txt"><h3>Clientes nuevos vs perdidos</h3><p>Flujo de cartera mensual: nuevos, reactivados y perdidos</p></div><span class="rep-arr">&#9660;</span></div>
+      <div class="rep-body" id="rep4Body"></div>
     </section>
   </div>
 </div>
@@ -437,6 +462,9 @@ document.addEventListener('click', function(e) {
   // Reporte 4 row toggle
   var r4=t.closest('.rep4-hdr');
   if(r4){var tgt=document.getElementById(r4.getAttribute('data-target'));if(tgt)tgt.classList.toggle('open');r4.classList.toggle('open');return;}
+  // Reporte section collapse
+  var rt=t.closest('.rep-toggle');
+  if(rt){var sec=document.getElementById(rt.getAttribute('data-sec'));if(sec)sec.classList.toggle('open');return;}
 });
 
 function reloadData(){document.getElementById('loading').style.display='flex';DATA=null;loadSheet();}
@@ -522,7 +550,7 @@ function processData(rows){
       cl3[zs][cl]=kept;
       Object.values(ci[zs][cl]).forEach(function(inv){
         var pp=inv.ds.split('/');if(pp.length<3)return;
-        var per=pp[2]+'-'+(parseInt(pp[1])<10?'0':'')+pp[1];
+        var per=pp[2]+'-'+pp[1];
         if(!pcd[per])pcd[per]={};if(!pcd[per][zs])pcd[per][zs]={};
         if(!pcd[per][zs][cl])pcd[per][zs][cl]={g:{},di:0,ti:0};
         var a=pcd[per][zs][cl];a.ti+=inv.ti;a.di+=inv.di;
@@ -1116,26 +1144,29 @@ function renderRep1(zs){
   rows.sort(function(a,b){return b.tAct-a.tAct;});
 
   function vtag(act,prev){
-    if(prev<=0){return act>0?'<span class="rep-up">nuevo</span>':'<span class="rep-flat">&mdash;</span>';}
+    if(prev<=0){return '<span class="rep-flat">&mdash;</span>';}
     var pct=Math.round((act-prev)/prev*100);
     if(pct>0)return '<span class="rep-up">&#9650; '+pct+'%</span>';
     if(pct<0)return '<span class="rep-down">&#9660; '+Math.abs(pct)+'%</span>';
     return '<span class="rep-flat">0%</span>';
   }
   var trimLbl=last3.length?(repLblShort(last3[0].y,last3[0].m)+'\u2013'+repLblShort(last3[last3.length-1].y,last3[last3.length-1].m)):'';
+  var mesLbl=mAct?repLblShort(mAct.y,mAct.m):'';
   var h='<table class="rep-tbl"><thead><tr>'+
     '<th style="width:36px">#</th><th>Cliente</th>'+
     '<th class="r">Fact. '+trimLbl+'</th>'+
-    '<th class="r">vs trim. anterior</th>'+
-    '<th class="r">vs mes anterior</th>'+
+    '<th class="r">vs trim. ant.</th>'+
+    '<th class="r">Fact. '+mesLbl+'</th>'+
+    '<th class="r">vs mes ant.</th>'+
     '</tr></thead><tbody>';
   rows.forEach(function(r,i){
     h+='<tr><td class="rep-idx">'+(i+1)+'</td><td class="rep-cl">'+esc(r.cl)+'</td>'+
       '<td class="r rep-money">'+fmtImp(r.tAct)+'</td>'+
       '<td class="r">'+vtag(r.tAct,r.tPrev)+'</td>'+
+      '<td class="r rep-money">'+fmtImp(r.mAct)+'</td>'+
       '<td class="r">'+vtag(r.mAct,r.mPrev)+'</td></tr>';
   });
-  if(!rows.length)h+='<tr><td colspan="5" class="rep-empty">Sin datos</td></tr>';
+  if(!rows.length)h+='<tr><td colspan="6" class="rep-empty">Sin datos</td></tr>';
   h+='</tbody></table>';
   document.getElementById('rep1Body').innerHTML=h;
 }
@@ -1218,12 +1249,6 @@ function renderRep2(zs){
     '</div>';
   });
   if(!rows.length)h='<div class="rep-empty">Sin datos de productos para esta zona</div>';
-  h+='<div class="rep-legend">'+
-    '<span><i style="background:'+REP_GCOLORS.Pinturas+'"></i>Pinturas</span>'+
-    '<span><i style="background:'+REP_GCOLORS.Distribucion+'"></i>Distribuci&oacute;n</span>'+
-    '<span><i style="background:'+REP_GCOLORS.Fraccionamiento+'"></i>Fraccionamiento</span>'+
-    '<span class="rep-legend-note">claro = trim. anterior</span>'+
-  '</div>';
   document.getElementById('rep2Body').innerHTML=h;
 }
 
@@ -1267,11 +1292,6 @@ function renderRep3(zs){
   });
   if(!clients.length)h+='<tr><td class="rep-empty">Sin datos</td></tr>';
   h+='</tbody></table></div>';
-  h+='<div class="rep-heat-legend"><span>Sin compra</span><div class="rep-x sm">\u2715</div>'+
-    '<div class="rep-cell sm" style="background:#C0DD97"></div>'+
-    '<div class="rep-cell sm" style="background:#97C459"></div>'+
-    '<div class="rep-cell sm" style="background:#639922"></div>'+
-    '<div class="rep-cell sm" style="background:#3B6D11"></div><span>Mayor compra</span></div>';
   document.getElementById('rep3Body').innerHTML=h;
 }
 
