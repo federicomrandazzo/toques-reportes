@@ -1329,10 +1329,10 @@ function renderRep4(zs){
           if(gap>=3)react.push(cl);
         }
       }
-      // PERDIDO: última compra == P y pasaron >=3 meses hasta el último período
-      if(last.sk===P.sk){
-        var gapToEnd=repMonthsBetween(P.y,P.m,latest.y,latest.m);
-        if(gapToEnd>=3)perd.push(cl);
+      // PERDIDO: se confirma cuando se cumplen 3 meses sin comprar desde la última compra
+      // (se atribuye al mes donde se completa la ausencia, no al mes de la última compra)
+      if(repMonthsBetween(last.y,last.m,P.y,P.m)===3){
+        perd.push(cl);
       }
     });
     var neto=nuevos.length+react.length-perd.length;
