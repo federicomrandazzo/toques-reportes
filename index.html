@@ -1234,10 +1234,10 @@ function renderRep2(zs){
 
   var h='';
   rows.forEach(function(r){
-    var varTxt='';
-    if(r.totP>0){var pct=Math.round((r.totA-r.totP)/r.totP*100);varTxt=(pct>=0?'+':'')+pct+'%';}
-    else varTxt='\u2014';
-    var al=alertMix(r.ga,r.gp,r.mixA,r.mixP);
+    var pctTot=r.totP>0?Math.round((r.totA-r.totP)/r.totP*100):null;
+    var varTxt=(pctTot!==null)?((pctTot>=0?'+':'')+pctTot+'%'):'\u2014';
+    // La alerta de mix solo si la venta total NO creció (>+10% = el cliente está comprando más, no es problema)
+    var al=(pctTot!==null && pctTot>10)?'':alertMix(r.ga,r.gp,r.mixA,r.mixP);
     h+='<div class="rep-mix-card">'+
       '<div class="rep-mix-top"><span class="rep-mix-name">'+esc(r.cl)+'</span>'+
         '<span class="rep-mix-var">'+fmtImp(r.totA)+' &middot; <strong>'+varTxt+'</strong></span></div>'+
