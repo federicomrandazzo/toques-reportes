@@ -1177,42 +1177,43 @@ function renderRep2(zs){
     document.getElementById('rep2Body').innerHTML='<div class="rep-empty">Cargando detalle de productos\u2026</div>';
     return;
   }
-  var dp=DATA.periods.slice(); // periodos del detalle (2025+), formato YYYY-MM
-  dp.sort();
-  var n=dp.length;
-  var last3=dp.slice(Math.max(0,n-3)), prev3=dp.slice(Math.max(0,n-6),Math.max(0,n-3));
   var pcd=DATA.period_client_detail;
   var GORDER=['Pinturas','Distribucion','Fraccionamiento'];
+  // mismos meses que el reporte 1 (calendario mensual)
+  var P=REP_PERIODS, n=P.length;
+  var last3=P.slice(Math.max(0,n-3)), prev3=P.slice(Math.max(0,n-6),Math.max(0,n-3));
+  function detKey(p){return p.y+'-'+(p.m<10?'0':'')+p.m;} // clave del detalle (con cero)
 
-  function groupSums(cl,periods){
+  // total de venta (planilla mensual) para el % de variación
+  function totalSum(cl,arr){
+    if(!REP_MONTHLY[zs]||!REP_MONTHLY[zs][cl])return 0;
+    var s=0;arr.forEach(function(p){var v=REP_MONTHLY[zs][cl][p.key]||0;if(v>0)s+=v;});return s;
+  }
+  // suma por grupo (detalle) para las barras de mix
+  function groupSums(cl,arr){
     var g={Pinturas:0,Distribucion:0,Fraccionamiento:0};
-    periods.forEach(function(per){
-      var d=pcd[per]&&pcd[per][zs]&&pcd[per][zs][cl];
+    arr.forEach(function(p){
+      var d=pcd[detKey(p)]&&pcd[detKey(p)][zs]&&pcd[detKey(p)][zs][cl];
       if(!d)return;
       GORDER.forEach(function(gr){
-        if(d.g[gr]){var s=0;Object.keys(d.g[gr]).forEach(function(p){s+=d.g[gr][p].i;});g[gr]+=s;}
+        if(d.g[gr]){var s=0;Object.keys(d.g[gr]).forEach(function(pp){s+=d.g[gr][pp].i;});g[gr]+=s;}
       });
     });
     return g;
   }
-  // clientes de la zona presentes en el detalle
-  var clientsSet={};
-  [].concat(last3,prev3).forEach(function(per){
-    if(pcd[per]&&pcd[per][zs])Object.keys(pcd[per][zs]).forEach(function(cl){clientsSet[cl]=1;});
-  });
-  var clients=Object.keys(clientsSet);
+
+  var clients=REP_MONTHLY[zs]?Object.keys(REP_MONTHLY[zs]):[];
   var rows=clients.map(function(cl){
     var ga=groupSums(cl,last3), gp=groupSums(cl,prev3);
-    var ta=ga.Pinturas+ga.Distribucion+ga.Fraccionamiento;
-    var tp=gp.Pinturas+gp.Distribucion+gp.Fraccionamiento;
-    return {cl:cl, ga:ga, gp:gp, ta:ta, tp:tp};
-  }).filter(function(r){return r.ta>0||r.tp>0;});
-  rows.sort(function(a,b){return b.ta-a.ta;});
+    var mixA=ga.Pinturas+ga.Distribucion+ga.Fraccionamiento;
+    var mixP=gp.Pinturas+gp.Distribucion+gp.Fraccionamiento;
+    return {cl:cl, ga:ga, gp:gp, mixA:mixA, mixP:mixP, totA:totalSum(cl,last3), totP:totalSum(cl,prev3)};
+  }).filter(function(r){return r.totA>0||r.totP>0;});
+  rows.sort(function(a,b){return b.totA-a.totA;});
 
   function bar(g,tot,light){
     if(tot<=0)return '<div style="flex:1;background:var(--surface2);height:100%"></div>';
     var h='';
-    var GORDER=['Pinturas','Distribucion','Fraccionamiento'];
     GORDER.forEach(function(gr){
       var pct=g[gr]/tot*100;
       if(pct<=0)return;
@@ -1223,7 +1224,6 @@ function renderRep2(zs){
   }
   function alertMix(ga,gp,ta,tp){
     if(ta<=0||tp<=0)return '';
-    var GORDER=['Pinturas','Distribucion','Fraccionamiento'];
     var msg='';
     GORDER.forEach(function(gr){
       var sa=ga[gr]/ta*100, sp=gp[gr]/tp*100;
@@ -1235,16 +1235,16 @@ function renderRep2(zs){
   var h='';
   rows.forEach(function(r){
     var varTxt='';
-    if(r.tp>0){var pct=Math.round((r.ta-r.tp)/r.tp*100);varTxt=(pct>=0?'+':'')+pct+'%';}
-    else if(r.ta>0)varTxt='nuevo';
-    var al=alertMix(r.ga,r.gp,r.ta,r.tp);
+    if(r.totP>0){var pct=Math.round((r.totA-r.totP)/r.totP*100);varTxt=(pct>=0?'+':'')+pct+'%';}
+    else varTxt='\u2014';
+    var al=alertMix(r.ga,r.gp,r.mixA,r.mixP);
     h+='<div class="rep-mix-card">'+
       '<div class="rep-mix-top"><span class="rep-mix-name">'+esc(r.cl)+'</span>'+
-        '<span class="rep-mix-var">'+fmtImp(r.ta)+' &middot; <strong>'+varTxt+'</strong></span></div>'+
+        '<span class="rep-mix-var">'+fmtImp(r.totA)+' &middot; <strong>'+varTxt+'</strong></span></div>'+
       '<div class="rep-mix-bar-lbl">Trim. actual</div>'+
-      '<div class="rep-mix-bar">'+bar(r.ga,r.ta,false)+'</div>'+
+      '<div class="rep-mix-bar">'+bar(r.ga,r.mixA,false)+'</div>'+
       '<div class="rep-mix-bar-lbl">Trim. anterior</div>'+
-      '<div class="rep-mix-bar">'+bar(r.gp,r.tp,true)+'</div>'+
+      '<div class="rep-mix-bar">'+bar(r.gp,r.mixP,true)+'</div>'+
       (al?'<div class="rep-mix-alert">&#9888; '+al+'</div>':'')+
     '</div>';
   });
