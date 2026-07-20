@@ -374,6 +374,8 @@ table.ptbl td.bold{font-weight:700;}
 <script>
 var STATIC = JSON.parse(document.getElementById('staticData').textContent);
 var CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTBXwcnP6TwSkHfToBOMIl9o0c-fIo4erZ7wMBdTpDxRsqmf5iSl3-3FfM5gg8z6cvfJpCiWXKLaiBE/pub?gid=914595290&single=true&output=csv";
+// Evita el cache de Google al publicar CSVs: cada pedido usa una URL distinta
+function bust(u){return u+'&t='+Date.now();}
 var DATA = null;
 var curView='all', curPeriod='', curZona=0;
 var MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -470,7 +472,7 @@ function reloadData(){document.getElementById('loading').style.display='flex';DA
 
 function loadSheet(){
   sp(5,'Descargando planilla...');
-  Papa.parse(CSV_URL,{
+  Papa.parse(bust(CSV_URL),{
     download:true,header:true,skipEmptyLines:true,
     complete:function(r){sp(55,'Procesando '+r.data.length.toLocaleString()+' registros...');setTimeout(function(){processData(r.data);},50);},
     error:function(e){document.getElementById('loadMsg').textContent='Error: '+String(e);}
@@ -789,7 +791,7 @@ function periodSortKey(p){
 
 function loadAlertas(){
   document.getElementById('alertasLoading').style.display='flex';
-  Papa.parse(CSV_URL_ALERTAS,{
+  Papa.parse(bust(CSV_URL_ALERTAS),{
     download:true,header:true,skipEmptyLines:true,
     complete:function(r){ processAlertas(r.data); },
     error:function(e){ document.getElementById('alertasLoadMsg').textContent='Error: '+String(e); }
@@ -1040,7 +1042,7 @@ function repLblLong(y,m){return REP_MON[m-1]+' '+y;}
 function loadReportes(){
   document.getElementById('repLoading').style.display='flex';
   if(REP_MONTHLY){ buildRepPeriods(); renderReportes(); document.getElementById('repLoading').style.display='none'; return; }
-  Papa.parse(CSV_URL_REP,{
+  Papa.parse(bust(CSV_URL_REP),{
     download:true,header:true,skipEmptyLines:true,
     complete:function(r){ processReportes(r.data); },
     error:function(e){ document.getElementById('repLoadMsg').textContent='Error: '+String(e); }
