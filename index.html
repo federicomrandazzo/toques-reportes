@@ -428,17 +428,27 @@ function intentarLogin(){
   if(!k)return;
   sha256(k).then(function(h){
     var p=null;PERFILES.forEach(function(x){if(x.h===h)p=x;});
-    if(p){PERFIL=p;try{localStorage.setItem('tmAuth',h);}catch(e){}iniciarApp();}
+    if(p){PERFIL=p;try{localStorage.setItem('tmAuth',h);}catch(e){}iniciarApp();registrarAcceso('ingreso con clave');}
     else{document.getElementById('loginErr').classList.add('on');}
   });
 }
 function cerrarSesion(){try{localStorage.removeItem('tmAuth');}catch(e){}location.reload();}
+// Registro de accesos en Google Sheet (vacío = apagado)
+var LOG_URL='';
+function registrarAcceso(evento){
+  if(!LOG_URL||!PERFIL)return;
+  var disp=/Mobi|Android/i.test(navigator.userAgent)?'celular':'computadora';
+  try{
+    fetch(LOG_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'perfil='+encodeURIComponent(PERFIL.nombre)+'&evento='+encodeURIComponent(evento)+'&dispositivo='+encodeURIComponent(disp)});
+  }catch(e){}
+}
 (function(){
   document.getElementById('loginBtn').onclick=intentarLogin;
   document.getElementById('loginKey').addEventListener('keydown',function(e){if(e.key==='Enter')intentarLogin();});
   var h=null;try{h=localStorage.getItem('tmAuth');}catch(e){}
   var p=null;PERFILES.forEach(function(x){if(x.h===h)p=x;});
-  if(p){PERFIL=p;iniciarApp();}
+  if(p){PERFIL=p;iniciarApp();registrarAcceso('sesión recordada');}
   else{document.getElementById('login').style.display='flex';}
 })();
 var DATA = null;
