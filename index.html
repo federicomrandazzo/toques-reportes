@@ -17,6 +17,17 @@ body{font-family:"Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.5;back
 #loading .prog{width:300px;height:8px;background:#eee;border-radius:4px;overflow:hidden;}
 #loading .prog-bar{height:100%;background:var(--yellow-dk);border-radius:4px;transition:width .3s;width:0%;}
 @keyframes spin{to{transform:rotate(360deg);}}
+#login{position:fixed;inset:0;background:#F7F7F7;display:flex;align-items:center;justify-content:center;z-index:10000;}
+.login-card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 6px 30px rgba(0,0,0,.12);padding:38px 42px;max-width:380px;width:90%;text-align:center;border-top:5px solid var(--yellow);}
+.login-card h2{font-family:"Segoe UI Black","Arial Black",sans-serif;font-size:19px;letter-spacing:2px;text-transform:uppercase;color:#111;margin-bottom:6px;}
+.login-card p{font-size:13px;color:var(--muted);margin-bottom:22px;}
+.login-card input{font-family:inherit;font-size:16px;padding:11px 14px;border:2px solid var(--border-dk);border-radius:7px;width:100%;text-align:center;letter-spacing:1px;}
+.login-card input:focus{border-color:var(--yellow-dk);outline:none;}
+.login-card button{font-family:inherit;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:11px 0;border:none;border-radius:7px;background:var(--yellow);color:#111;cursor:pointer;width:100%;margin-top:14px;}
+.login-card button:hover{background:var(--yellow-dk);}
+.login-err{display:none;font-size:13px;color:var(--orange);font-weight:600;margin-top:12px;}
+.login-err.on{display:block;}
+.user-tag{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
 header{background:var(--surface);border-bottom:4px solid var(--yellow);position:sticky;top:0;z-index:100;box-shadow:0 3px 16px rgba(0,0,0,.1);}
 .hdr{display:flex;align-items:center;gap:20px;padding:8px 36px;max-width:1500px;margin:0 auto;}
 .logo-img{height:64px;width:auto;flex-shrink:0;}
@@ -266,7 +277,16 @@ table.ptbl td.bold{font-weight:700;}
 </style>
 </head>
 <body>
-<div id="loading">
+<div id="login" style="display:none">
+  <div class="login-card">
+    <h2>An&#225;lisis comercial</h2>
+    <p>Ingres&#225; tu clave de acceso</p>
+    <input type="password" id="loginKey" placeholder="Clave" autocomplete="off">
+    <button id="loginBtn">Entrar</button>
+    <div class="login-err" id="loginErr">Clave incorrecta</div>
+  </div>
+</div>
+<div id="loading" style="display:none">
   <div class="spin"></div>
   <h2>Cargando datos...</h2>
   <p id="loadMsg">Conectando con la planilla</p>
@@ -286,6 +306,8 @@ table.ptbl td.bold{font-weight:700;}
     </div>
     <button class="refresh-btn" onclick="reloadData()">&#8635; Actualizar</button>
     <span class="last-update" id="lastUpdate"></span>
+    <span class="user-tag" id="userTag"></span>
+    <button class="refresh-btn" onclick="cerrarSesion()">Salir</button>
   </div>
 </header>
 <div id="ventasPage">
@@ -385,6 +407,40 @@ var INACT_SET=(function(){
   return set;
 })();
 function esInactivo(cl){return INACT_SET[normCli(cl)]===1;}
+// ===== Acceso por clave: cada perfil ve solo sus zonas (zonas:null = todas) =====
+var PERFILES=[
+  {h:'8766164ac29fdbdd493e18cb74c96f9b1d5479c1b1a97de9fbee527643a6d1f8', nombre:'BUSTOS, LEOPOLDO AGUSTÍN', zonas:[2,5]},
+  {h:'1b3878a5d2a3909ad2c4c59b3cc90e7d041dc8d940e4ba40e0da75089aceaabf', nombre:'TRASOBARES, ROBERTO ARIEL', zonas:[3,16]},
+  {h:'1b95a12df97247061b34fd47f4a2d7305dcebf5eb034f499e533f8c905b8a5f2', nombre:'GIGENA, CARLOS ARIEL', zonas:[4,8]},
+  {h:'24cca8a5a6fb320a37cc5679cdae14dab1bce38557b00fbc2513644a67bbb19b', nombre:'Dirección', zonas:null}
+];
+var PERFIL=null;
+function sha256(t){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0');}).join('');});}
+function zonaOK(z){return !PERFIL||!PERFIL.zonas||PERFIL.zonas.indexOf(parseInt(z))>=0;}
+function iniciarApp(){
+  document.getElementById('login').style.display='none';
+  document.getElementById('userTag').textContent=PERFIL.nombre;
+  document.getElementById('loading').style.display='flex';
+  loadSheet();
+}
+function intentarLogin(){
+  var k=document.getElementById('loginKey').value.trim().toLowerCase();
+  if(!k)return;
+  sha256(k).then(function(h){
+    var p=null;PERFILES.forEach(function(x){if(x.h===h)p=x;});
+    if(p){PERFIL=p;try{localStorage.setItem('tmAuth',h);}catch(e){}iniciarApp();}
+    else{document.getElementById('loginErr').classList.add('on');}
+  });
+}
+function cerrarSesion(){try{localStorage.removeItem('tmAuth');}catch(e){}location.reload();}
+(function(){
+  document.getElementById('loginBtn').onclick=intentarLogin;
+  document.getElementById('loginKey').addEventListener('keydown',function(e){if(e.key==='Enter')intentarLogin();});
+  var h=null;try{h=localStorage.getItem('tmAuth');}catch(e){}
+  var p=null;PERFILES.forEach(function(x){if(x.h===h)p=x;});
+  if(p){PERFIL=p;iniciarApp();}
+  else{document.getElementById('login').style.display='flex';}
+})();
 var DATA = null;
 var curView='all', curPeriod='', curZona=0;
 var MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -590,13 +646,14 @@ function processData(rows){
 }
 
 function initUI(){
-  curZona=DATA.zones[0];
+  var zonasVis=DATA.zones.filter(zonaOK);
+  curZona=zonasVis[0];
   var ps=document.getElementById('periodSel');ps.innerHTML='';
   DATA.periods.forEach(function(p){var o=document.createElement('option');o.value=p;o.textContent=fmtP(p);ps.appendChild(o);});
   ps.value=DATA.periods[DATA.periods.length-1];curPeriod=ps.value;
   ps.onchange=function(){curPeriod=ps.value;render();};
   var zs=document.getElementById('zonaSel');zs.innerHTML='';
-  DATA.zones.forEach(function(z){var o=document.createElement('option');o.value=z;o.textContent=getVend(z)+' (Zona '+z+')';zs.appendChild(o);});
+  zonasVis.forEach(function(z){var o=document.createElement('option');o.value=z;o.textContent=getVend(z)+' (Zona '+z+')';zs.appendChild(o);});
   zs.onchange=function(){curZona=parseInt(zs.value);render();};
   render();
 }
@@ -744,7 +801,7 @@ function render(){
   DC=0;
   var buyers=DATA.period_zone_buyers[curPeriod]||{};
   var inact=DATA.inactivos||{};
-  var zones=curView==='all'?DATA.zones:[curZona];
+  var zones=(curView==='all'?DATA.zones:[curZona]).filter(zonaOK);
   if(curView==='single')document.getElementById('soloLbl').textContent=getVend(curZona)+' \u2014 Zona '+curZona;
   var tC=0,tOk=0,tNC=0,h='';
   zones.forEach(function(z){
@@ -771,7 +828,7 @@ function render(){
   document.getElementById('stOk').textContent=tOk;
   document.getElementById('stNC').textContent=tNC;
 }
-loadSheet();
+// El arranque lo maneja el login (iniciarApp)
 
 
 // ============ ALERTAS DE CAIDA (segunda fuente: planilla mensual) ============
@@ -890,7 +947,7 @@ function processAlertas(rows){
 }
 
 function initAlertasUI(){
-  var zones=Array.from(new Set(ALERTAS_DATA.results.map(function(r){return r.zona;}))).sort(function(a,b){return a-b;});
+  var zones=Array.from(new Set(ALERTAS_DATA.results.map(function(r){return r.zona;}))).filter(zonaOK).sort(function(a,b){return a-b;});
   alertasZona=zones[0];
   var zs=document.getElementById('alertasZonaSel');
   zs.innerHTML='';
@@ -956,9 +1013,9 @@ function buildAlertaRow(r,i){
 
 function renderAlertas(){
   if(!ALERTAS_DATA)return;
-  var zones=alertasView==='all'
+  var zones=(alertasView==='all'
     ? Array.from(new Set(ALERTAS_DATA.results.map(function(r){return r.zona;}))).sort(function(a,b){return a-b;})
-    : [alertasZona];
+    : [alertasZona]).filter(zonaOK);
 
   var h='';
   var totOverdue=0,totLow=0,totSpor=0;
@@ -1113,7 +1170,7 @@ function buildRepPeriods(){
 function initReportesUI(){
   var sel=document.getElementById('repZonaSel');
   sel.innerHTML='';
-  var zonesPresent=REP_ZONES_ALLOWED.filter(function(z){return REP_MONTHLY[String(z)];});
+  var zonesPresent=REP_ZONES_ALLOWED.filter(function(z){return REP_MONTHLY[String(z)]&&zonaOK(z);});
   zonesPresent.forEach(function(z){
     var o=document.createElement('option');o.value=z;o.textContent=getVend(z)+' (Zona '+z+')';sel.appendChild(o);
   });
