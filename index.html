@@ -457,6 +457,17 @@ var INACT_SET=(function(){
   return set;
 })();
 function esInactivo(cl){return INACT_SET[normCli(cl)]===1;}
+// Nombres canónicos: si el mismo cliente aparece con variantes ("CABRERA ARNALDO" vs
+// "CABRERA, ARNALDO"), se unifican bajo la grafía más reciente para no partir su historia.
+var CANON={}; // normCli -> {sk, nombre}
+function canonAprender(cl,sk){
+  var n=normCli(cl);
+  if(!CANON[n]||sk>=CANON[n].sk)CANON[n]={sk:sk,nombre:cl};
+}
+function canonNombre(cl){
+  var c=CANON[normCli(cl)];
+  return c?c.nombre:cl;
+}
 // ===== Acceso por clave: cada perfil ve solo sus zonas (zonas:null = todas) =====
 var PERFILES=[
   {h:'8766164ac29fdbdd493e18cb74c96f9b1d5479c1b1a97de9fbee527643a6d1f8', nombre:'BUSTOS, LEOPOLDO AGUSTÍN', zonas:[2,5]},
@@ -609,11 +620,18 @@ function processData(rows){
   sp(70,'Analizando...');
   var zc={},pby={},lp={},ps={},ci={};
 
+  // PASO 0: aprender la grafía más reciente de cada cliente (unifica variantes de nombre)
+  fc.forEach(function(r){
+    var cl0=(r['Cliente']||'').trim();if(!cl0)return;
+    var p0=(r['periodo']||'').trim();if(!p0)return;
+    canonAprender(cl0,periodSortKey(p0));
+  });
+
   // PASO 1: detectar la zona más reciente de cada cliente
   var clientLastZone={}; // cliente -> {fn, zona}
   fc.forEach(function(r){
     var z=extractZone(r['Vendedor']);if(!z)return;
-    var cl=(r['Cliente']||'').trim();if(!cl)return;
+    var cl=canonNombre((r['Cliente']||'').trim());if(!cl)return;
     var an=parseInt(r['\u00e3\u00b1o']||r['a\u00f1o']||r['año']||r['ano']||0);
     var me=parseInt(r['mes']||0),di=parseInt(r['dia']||0);
     if(!an||!me)return;
@@ -626,7 +644,7 @@ function processData(rows){
   // PASO 2: procesar con zona canónica
   fc.forEach(function(r){
     var z=extractZone(r['Vendedor']);if(!z)return;
-    var cl=(r['Cliente']||'').trim();if(!cl)return;
+    var cl=canonNombre((r['Cliente']||'').trim());if(!cl)return;
     var an=parseInt(r['\u00e3\u00b1o']||r['a\u00f1o']||r['año']||r['ano']||0);
     var me=parseInt(r['mes']||0),di=parseInt(r['dia']||0);
     if(!an||!me)return;
@@ -829,7 +847,9 @@ function toggleSubgrp(id){var e=document.getElementById(id);if(e)e.classList.tog
 var DC=0;
 function buildRow(c,i,zs,bought){
   var ld=((DATA.last_purchase||{})[zs]||{})[c]||'';
-  var obsTxt=((DATA.observaciones||{})[zs]||{})[c]||'';
+  var obsTxt='';
+  var obsZ=(DATA.observaciones||{})[zs]||{};
+  for(var obsK in obsZ){if(normCli(obsK)===normCli(c)){obsTxt=obsZ[obsK];break;}}
   var dtd=ld?'<span class="dtag '+dateClass(ld)+'">'+esc(ld)+'</span>':'<span class="dtag d-old">sin datos</span>';
   var obs=obsTxt?'<span class="obs">'+esc(obsTxt)+'</span>':'';
   var est=bought?'<span class="gtag">Compr&oacute;</span>':'<span class="stag">Sin compra</span>';
@@ -866,10 +886,11 @@ function render(){
   var tC=0,tOk=0,tNC=0,h='';
   zones.forEach(function(z){
     var zs=String(z),all=DATA.zone_clients[zs]||[];
-    var bs=new Set(buyers[zs]||[]),is=new Set(inact[zs]||[]);
+    var bs=new Set(buyers[zs]||[]);
+    var isN={};(inact[zs]||[]).forEach(function(x){isN[normCli(x)]=1;});
     var noC=all.filter(function(c){return !bs.has(c);});
-    var act=noC.filter(function(c){return !is.has(c);});
-    var inac=noC.filter(function(c){return is.has(c);});
+    var act=noC.filter(function(c){return !isN[normCli(c)];});
+    var inac=noC.filter(function(c){return isN[normCli(c)];});
     var comp=all.filter(function(c){return bs.has(c);});
     tC+=all.length;tOk+=comp.length;tNC+=noC.length;
     var oc=curView==='single'?' open':'';
@@ -927,11 +948,18 @@ function loadAlertas(){
 function processAlertas(rows){
   var periodsSet={};
 
+  // PASO 0: aprender la grafía más reciente de cada cliente
+  rows.forEach(function(r){
+    var cl0=(r['Cliente']||'').trim();if(!cl0)return;
+    var p0=(r['periodo']||'').trim();if(!p0)return;
+    canonAprender(cl0,periodSortKey(p0));
+  });
+
   // PASO 1: zona más reciente por cliente
   var clientLastZoneA={}; // cliente -> {sortKey, zona}
   rows.forEach(function(r){
     var z=extractZoneAlertas(r['Vendedor']);if(z===null)return;
-    var cliente=(r['Cliente']||'').trim();if(!cliente)return;
+    var cliente=canonNombre((r['Cliente']||'').trim());if(!cliente)return;
     var periodo=(r['periodo']||'').trim();if(!periodo)return;
     var sk=periodSortKey(periodo);
     if(!clientLastZoneA[cliente]||sk>clientLastZoneA[cliente].sk){
@@ -943,7 +971,7 @@ function processAlertas(rows){
   var byKey={};
   rows.forEach(function(r){
     var z=extractZoneAlertas(r['Vendedor']);if(z===null)return;
-    var cliente=(r['Cliente']||'').trim();if(!cliente)return;
+    var cliente=canonNombre((r['Cliente']||'').trim());if(!cliente)return;
     if(esInactivo(cliente))return;
     var periodo=(r['periodo']||'').trim();if(!periodo)return;
     var totalRaw=String(r['Total']||'0').replace(/\$/g,'').replace(/\./g,'').replace(',','.');
@@ -1177,11 +1205,17 @@ function loadReportes(){
 }
 
 function processReportes(rows){
+  // aprender la grafía más reciente de cada cliente
+  rows.forEach(function(r){
+    var cl0=(r['Cliente']||'').trim();if(!cl0)return;
+    var p0=(r['periodo']||'').trim();if(!p0)return;
+    canonAprender(cl0,periodSortKey(p0));
+  });
   // zona canónica = última zona de compra por cliente
   var lastZone={};
   rows.forEach(function(r){
     var z=extractZoneAlertas(r['Vendedor']);if(z===null)return;
-    var cl=(r['Cliente']||'').trim();if(!cl)return;
+    var cl=canonNombre((r['Cliente']||'').trim());if(!cl)return;
     var p=(r['periodo']||'').trim();if(!p)return;
     var sk=periodSortKey(p);
     if(!lastZone[cl]||sk>lastZone[cl].sk)lastZone[cl]={sk:sk,zona:z};
@@ -1189,7 +1223,7 @@ function processReportes(rows){
   var mon={};
   rows.forEach(function(r){
     var z=extractZoneAlertas(r['Vendedor']);if(z===null)return;
-    var cl=(r['Cliente']||'').trim();if(!cl)return;
+    var cl=canonNombre((r['Cliente']||'').trim());if(!cl)return;
     if(esInactivo(cl))return;
     var p=(r['periodo']||'').trim();if(!p)return;
     var pr=p.split('-');var pkey=parseInt(pr[0])+'-'+parseInt(pr[1]);
