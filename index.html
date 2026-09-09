@@ -496,14 +496,35 @@ function intentarLogin(){
 function cerrarSesion(){try{localStorage.removeItem('tmAuth');}catch(e){}location.reload();}
 // Registro de accesos en Google Sheet (vacío = apagado)
 var LOG_URL='https://script.google.com/macros/s/AKfycbwFJHIe4S281HJ5-bDFk91_M9sWFt2E0h6XsJ5a4OAfpjuhON5hubtwRomXyFhmS3C27g/exec';
+var SESION_ID=Math.random().toString(36).slice(2,10); // identifica esta visita para actualizarle los minutos
 function registrarAcceso(evento){
   if(!LOG_URL||!PERFIL)return;
   var disp=/Mobi|Android/i.test(navigator.userAgent)?'celular':'computadora';
   try{
     fetch(LOG_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:'perfil='+encodeURIComponent(PERFIL.nombre)+'&evento='+encodeURIComponent(evento)+'&dispositivo='+encodeURIComponent(disp)});
+      body:'perfil='+encodeURIComponent(PERFIL.nombre)+'&evento='+encodeURIComponent(evento)+'&dispositivo='+encodeURIComponent(disp)+'&sesion='+SESION_ID});
   }catch(e){}
 }
+// Permanencia: cuenta solo el tiempo con la página visible y actualiza la columna Minutos de esta visita
+var SEG_VISIBLES=0, ULT_MIN_ENVIADO=-1;
+function enviarPermanencia(){
+  if(!LOG_URL||!PERFIL)return;
+  var min=Math.round(SEG_VISIBLES/60);
+  if(min===ULT_MIN_ENVIADO)return;
+  ULT_MIN_ENVIADO=min;
+  try{
+    fetch(LOG_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'accion=permanencia&sesion='+SESION_ID+'&minutos='+min});
+  }catch(e){}
+}
+setInterval(function(){
+  if(document.visibilityState==='visible'&&PERFIL){
+    SEG_VISIBLES+=15;
+    if(SEG_VISIBLES%60===0)enviarPermanencia();
+  }
+},15000);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')enviarPermanencia();});
+window.addEventListener('pagehide',function(){enviarPermanencia();});
 (function(){
   document.getElementById('loginBtn').onclick=intentarLogin;
   document.getElementById('loginKey').addEventListener('keydown',function(e){if(e.key==='Enter')intentarLogin();});
