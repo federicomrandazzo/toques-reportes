@@ -504,6 +504,8 @@ function zonaOK(z){return !PERFIL||!PERFIL.zonas||PERFIL.zonas.indexOf(parseInt(
 function iniciarApp(){
   document.getElementById('login').style.display='none';
   document.getElementById('userTag').textContent=PERFIL.nombre;
+  // Acciones: por ahora solo visible para Dirección
+  document.getElementById('tabAcciones').style.display=(PERFIL&&!PERFIL.zonas)?'':'none';
   document.getElementById('loading').style.display='flex';
   loadSheet();
 }
@@ -1567,6 +1569,7 @@ function rep4Names(lbl,arr){
 
 
 function setMainTab(tab){
+  if(tab==='acciones'&&PERFIL&&PERFIL.zonas)tab='ventas'; // Acciones es solo de Dirección
   document.getElementById('tabVentas').classList.toggle('on',tab==='ventas');
   document.getElementById('tabAlertas').classList.toggle('on',tab==='alertas');
   document.getElementById('tabReportes').classList.toggle('on',tab==='reportes');
